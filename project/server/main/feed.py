@@ -12,7 +12,8 @@ import math
 
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object
-from project.server.main.parse import parse_theses
+from project.server.main.parse import parse_theses, get_idref_from_OS
+from project.server.main.referentiel import harvest_and_save_idref
 
 logger = get_logger(__name__)
 
@@ -51,8 +52,6 @@ def get_num_these_between_dates(start_date, end_date):
         soup = BeautifulSoup(r.text, 'lxml')
         num_theses += get_num_these(soup)
         
-        # fast !
-        break
     return num_theses
 
 
@@ -79,10 +78,8 @@ def save_data(data, collection_name, year_start, year_end, chunk_index, referent
 
 def harvest_and_insert(collection_name):
     # 1. save aurehal structures
-    referentiel = {}
-    #for ref in ['structure', 'author']:
-    #    harvest_and_save_aurehal(collection_name, ref)
-    #    aurehal[ref] = get_aurehal_from_OS(collection_name, ref)
+    harvest_and_save_idref(collection_name)
+    referentiel = get_idref_from_OS(collection_name)
 
     # 2. drop mongo 
     #logger.debug(f'dropping {collection_name} collection before insertion')
@@ -128,7 +125,6 @@ def harvest_and_insert_one_year(collection_name, year_start, year_end, referenti
     chunk_index = 0
     data = []
     MAX_DATA_SIZE = 25000
-    MAX_DATA_SIZE = 200
     nb_theses = len(all_num_theses)
     logger.debug(f'{nb_theses} theses to download and parse')
     for ix, nnt in enumerate(all_num_theses):

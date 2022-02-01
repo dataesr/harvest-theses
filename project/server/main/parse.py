@@ -100,13 +100,13 @@ def get_person2(author_object):
     return person
 
 
-#def get_aurehal_from_OS(collection_name, aurehal_type):
-#    target_file = f'aurehal_{collection_name}_{aurehal_type}_dict.json'
-#    os.system(f'rm -rf {target_file}.gz')
-#    os.system(f'rm -rf {target_file}')
-#    download_object('hal', f'{collection_name}/aurehal_{aurehal_type}_dict.json.gz', f'{target_file}.gz')
-#    os.system(f'gunzip {target_file}.gz')
-#    return json.load(open(target_file, 'r'))
+def get_idref_from_OS(collection_name):
+    target_file = f'idref_struct_{collection_name}_dict.json'
+    os.system(f'rm -rf {target_file}.gz')
+    os.system(f'rm -rf {target_file}')
+    download_object(container='theses', filename=f'{collection_name}/idref_struct_dict.json.gz', out=f'{target_file}.gz')
+    os.system(f'gunzip {target_file}.gz')
+    return json.load(open(target_file, 'r'))
 
 def parse_theses(notice, referentiel, snapshot_date):
     try:
@@ -159,7 +159,7 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
             if isinstance(abstract.text, str):
                 abstracts.append({'lang': lang, 'abstract': abstract.text.strip() })
     if abstracts:
-        res['abstracts'] = abstracts
+        res['abstract'] = abstracts
 
     classifications = []
     keywords = []
@@ -236,6 +236,15 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         is_oa = True
         oa_url = soup_xml.find('dc:identifier').text
 
+    res['oa_details'] = {}
+    res['oa_details'][snapshot_date] = {'is_oa': is_oa, 'observation_date': get_millesime(snapshot_date), 'snapshot_date': snapshot_date}
+    if is_oa:
+        res['oa_details'][snapshot_date]['oa_host_type'] = 'repository'
+        res['oa_details'][snapshot_date]['oa_colors'] = ['green']
+        res['oa_details'][snapshot_date]['oa_colors_with_priority_to_publisher'] = ['green_only']
+        res['oa_details'][snapshot_date]['repositories'] = ['theses.fr']
+        res['oa_details'][snapshot_date]['oa_locations'] = [{'url': oa_url, 'repository_normalized': 'theses.fr', 'host_type': 'repository'}]
+
     for mysoup in [soup, soup_xml]:
         for dci in mysoup.find_all('dc:identifier', {'xsi:type': "dcterms:URI"}):
             link = dci.text
@@ -261,9 +270,9 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         if id_org:
             current_affiliation['idref'] = id_org
             if id_org in referentiel:
-                current_affiliation['id'] = referentiel[id_org]
+                current_affiliation.update(referentiel[id_org])
             else:
-                logger.debug("IDREF STRUCT NOT ALIGNED;{}".format(id_org))
+                logger.debug("IDREF struct missing : {}".format(id_org))
             
         affiliations.append(current_affiliation)
 
