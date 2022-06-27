@@ -198,8 +198,8 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
 
     try:
         discipline = soup.find('tef:thesis.degree.discipline').text
-        thematic_degree = {'reference': 'degree discipline', 'fr_label': discipline }
-        thematics.append(thematic_degree)
+        thematic_degree = {'reference': 'degree discipline', 'label_fr': discipline }
+        classifications.append(thematic_degree)
     except:
         pass
     
@@ -237,13 +237,14 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         oa_url = soup_xml.find('dc:identifier').text
 
     res['oa_details'] = {}
-    res['oa_details'][snapshot_date] = {'is_oa': is_oa, 'observation_date': get_millesime(snapshot_date), 'snapshot_date': snapshot_date}
+    observation_date = get_millesime(snapshot_date)
+    res['oa_details'][observation_date] = {'is_oa': is_oa, 'observation_date': observation_date, 'snapshot_date': snapshot_date}
     if is_oa:
-        res['oa_details'][snapshot_date]['oa_host_type'] = 'repository'
-        res['oa_details'][snapshot_date]['oa_colors'] = ['green']
-        res['oa_details'][snapshot_date]['oa_colors_with_priority_to_publisher'] = ['green_only']
-        res['oa_details'][snapshot_date]['repositories'] = ['theses.fr']
-        res['oa_details'][snapshot_date]['oa_locations'] = [{'url': oa_url, 'repository_normalized': 'theses.fr', 'host_type': 'repository'}]
+        res['oa_details'][observation_date]['oa_host_type'] = 'repository'
+        res['oa_details'][observation_date]['oa_colors'] = ['green']
+        res['oa_details'][observation_date]['oa_colors_with_priority_to_publisher'] = ['green_only']
+        res['oa_details'][observation_date]['repositories'] = ['theses.fr']
+        res['oa_details'][observation_date]['oa_locations'] = [{'url': oa_url, 'repository_normalized': 'theses.fr', 'host_type': 'repository'}]
 
     for mysoup in [soup, soup_xml]:
         for dci in mysoup.find_all('dc:identifier', {'xsi:type': "dcterms:URI"}):
