@@ -36,20 +36,22 @@ def get_referentiel(collection_name):
     
     chunk_index = 0
     data_notice, data_parsed = [], []
-    #MAX_DATA_SIZE = 10000
-    MAX_DATA_SIZE = 100 #fast
+    MAX_DATA_SIZE = 5000
+    #MAX_DATA_SIZE = 100 #fast
     nb_idref = len(idref_to_download)
     logger.debug(f'{nb_idref} idref struct to download and parse')
     for ix, idref in enumerate(idref_to_download):
         if ix % 1000 == 0:
             logger.debug(f'idref struct {ix}')
-        notice = download_referentiel_notice(idref)
-        elt_notice = {'idref': idref, 'notice': notice}
-        data_notice.append(elt_notice)
-
-        elt_parsed = parse_idref(idref, notice)
-        data_parsed.append(elt_parsed)
-        
+        try:
+            notice = download_referentiel_notice(idref)
+            elt_notice = {'idref': idref, 'notice': notice}
+            data_notice.append(elt_notice)
+            elt_parsed = parse_idref(idref, notice)
+            data_parsed.append(elt_parsed)
+        except:
+            logger.debug(f'error in downloading notice for idref {idref}')
+            continue
         if (len(data_notice) > MAX_DATA_SIZE) or (ix == nb_idref - 1):
             if data_notice:
                 source = f'idref_struct_raw_{chunk_index}.json'
@@ -57,10 +59,6 @@ def get_referentiel(collection_name):
                 save_data_referentiel(data_notice, source, target)
                 data_notice = []
                 chunk_index += 1
-
-        if ix == 101:
-            break
-
     return data_parsed
 
 def save_data_referentiel(data, source, target):
