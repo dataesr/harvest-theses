@@ -34,7 +34,7 @@ def get_num_these_between_dates(start_date, end_date):
     start = 0
 
 
-    url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=dateSoutenance&val4a={}&val4b={}&start={}&format=xml"
+    url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=sujDatePremiereInscription&val4a={}&val4b={}&start={}&format=xml"
     logger.debug(url.format(start_date_str, end_date_str, start))
 
     r = requests.get(url.format(start_date_str, end_date_str, start))
