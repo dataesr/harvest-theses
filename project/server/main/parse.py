@@ -256,6 +256,10 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         res['oa_details'][observation_date]['oa_colors_with_priority_to_publisher'] = ['green_only']
         res['oa_details'][observation_date]['repositories'] = ['theses.fr']
         res['oa_details'][observation_date]['oa_locations'] = [{'url': oa_url, 'repository_normalized': 'theses.fr', 'host_type': 'repository'}]
+    else:
+        res['oa_details'][observation_date]['oa_host_type'] = 'closed'
+        res['oa_details'][observation_date]['oa_colors'] = ['closed']
+        res['oa_details'][observation_date]['oa_colors_with_priority_to_publisher'] = ['closed']
 
     for mysoup in [soup, soup_xml]:
         for dci in mysoup.find_all('dc:identifier', {'xsi:type': "dcterms:URI"}):
