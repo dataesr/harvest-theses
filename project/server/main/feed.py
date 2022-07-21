@@ -34,10 +34,12 @@ def get_num_these_between_dates(start_date, end_date):
     start = 0
 
 
-    url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=sujDatePremiereInscription&val4a={}&val4b={}&start={}&format=xml"
-    logger.debug(url.format(start_date_str, end_date_str, start))
+    #url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=sujDatePremiereInscription&val4a={}&val4b={}&start={}&format=xml"
+    #logger.debug(url.format(start_date_str, end_date_str, start))
+    #r = requests.get(url.format(start_date_str, end_date_str, start))
+    url = "http://theses.fr/?q=&start={}&format=xml"
 
-    r = requests.get(url.format(start_date_str, end_date_str, start))
+    r = requests.get(url.format(start))
 
     soup = BeautifulSoup(r.text, 'lxml')
 
@@ -48,7 +50,8 @@ def get_num_these_between_dates(start_date, end_date):
     nb_pages_remaining = math.ceil(int(nb_res)/1000)
     for p in range(1, nb_pages_remaining):
         logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
-        r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
+        #r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
+        r = requests.get(url.format(p * 1000))
         soup = BeautifulSoup(r.text, 'lxml')
         num_theses += get_num_these(soup)
         
