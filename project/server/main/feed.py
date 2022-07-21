@@ -76,9 +76,10 @@ def save_data(data, collection_name, year_start, year_end, chunk_index, referent
     upload_object('theses', f'{current_file_parsed}.gz', f'{collection_name}/parsed/{current_file_parsed}.gz')
     os.system(f'rm -rf {current_file_parsed}.gz')
 
-def harvest_and_insert(collection_name):
+def harvest_and_insert(collection_name, harvest_referentiel):
     # 1. save aurehal structures
-    harvest_and_save_idref(collection_name)
+    if harvest_referentiel:
+        harvest_and_save_idref(collection_name)
     referentiel = get_idref_from_OS(collection_name)
 
     # 2. drop mongo 

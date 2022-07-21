@@ -117,7 +117,7 @@ def parse_theses(notice, referentiel, snapshot_date):
         return parse_theses_xml(notice, referentiel, snapshot_date)
         return {}
 
-def get_parsed_date(date_balise):
+def get_parsed_date(soup, date_balise):
     date_elt = soup.find(date_balise)
     if date_elt:
         datestr = date_elt.text
@@ -227,13 +227,13 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         res['classifications'] = classifications_unique
 
     res['is_defended'] = False
-    defense_date = get_parsed_date('dcterms:dateaccepted')
+    defense_date = get_parsed_date(soup, 'dcterms:dateaccepted')
     if defense_date:
         res['defense_date'] = defense_date
         res['year'] = defense_date[0:4]
         res['is_defended'] = True
     
-    start_date = get_parsed_date('dcterms:created')
+    start_date = get_parsed_date(soup, 'dcterms:created')
     if start_date:
         res['start_date'] = start_date
 
