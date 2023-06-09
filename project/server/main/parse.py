@@ -246,6 +246,14 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     elif soup_xml.find('dc:identifier') and 'document' in soup_xml.find('dc:identifier').text:
         is_oa = True
         oa_url = soup_xml.find('dc:identifier').text
+    
+    #embargo confidentialite
+    
+    sorties = soup.find('sorties')
+    if sorties and sorties.find('diffusion'):
+        diffusion_attrs = sorties.find('diffusion').attrs
+        res.update(diffusion_attrs)
+        
 
     res['oa_details'] = {}
     observation_date = get_millesime(snapshot_date)
