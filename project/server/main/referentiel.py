@@ -1,4 +1,5 @@
 import datetime
+import urllib
 import os
 import json
 import re
@@ -12,6 +13,10 @@ from project.server.main.utils_swift import upload_object, download_object
 from project.server.main.logger import get_logger
 
 logger = get_logger(__name__)
+
+USERNAME = os.getenv('BRIGHT_USERNAME')
+PASSWORD = os.getenv('BRIGHT_PASSWORD')
+PORT = os.getenv('BRIGHT_PORT')
 
 @retry(delay=60, tries=5)
 def get_idref_list_in_referentiel():
@@ -30,6 +35,29 @@ def get_idref_list_in_referentiel():
         logger.debug(f"{len(idref_to_download)} sur {res['numFound']}")
     return idref_to_download
 
+def download_referentiel_notice2(idref):
+    url = f'https://www.idref.fr/{idref}.xml'
+    opener = urllib.request.build_opener(
+    urllib.request.ProxyHandler(
+            {'http': f'{USERNAME}:{PASSWORD}@zproxy.lum-superproxy.io:{PORT}',
+            'https': f'{USERNAME}:{PASSWORD}@zproxy.lum-superproxy.io:{PORT}'}))
+    #print(f'BRIGHT url = {url}', flush=True)
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    try:
+        source = urllib.request.urlopen(req).read()
+    except:
+        logger.debug(f'crawl error for {url}')
+        return None
+    #source = opener.open(url).read()
+    if type(source) == bytes:
+        try:
+            source = source.decode("utf-8")
+        except:
+            source = str(source)
+    if source[0:5] == '<?xml':
+        return source
+    return None
+
 
 def get_referentiel(collection_name):
     idref_to_download = get_idref_list_in_referentiel()
@@ -41,7 +69,7 @@ def get_referentiel(collection_name):
     nb_idref = len(idref_to_download)
     logger.debug(f'{nb_idref} idref struct to download and parse')
     for ix, idref in enumerate(idref_to_download):
-        if ix % 1000 == 0:
+        if ix % 10 == 0:
             logger.debug(f'idref struct {ix}')
         try:
             notice = download_referentiel_notice(idref)
@@ -143,7 +171,7 @@ def parse_idref(idref, notice):
 
 @retry(delay=60, tries=5)
 def download_referentiel_notice(idref):
-    r = requests.get(f'http://www.idref.fr/{idref}.xml')
+    r = requests.get(f'https://www.idref.fr/{idref}.xml')
     if r.text[0:5] == '<?xml':
         return r.text
     return None

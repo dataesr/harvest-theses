@@ -17,6 +17,10 @@ from project.server.main.referentiel import harvest_and_save_idref
 
 logger = get_logger(__name__)
 
+def get_ip():
+    ip = requests.get('https://api.ipify.org').text
+    return ip
+
 def get_num_these(soup):
     num_theses = []
     for d in soup.find_all('doc'):
@@ -37,7 +41,7 @@ def get_num_these_between_dates(start_date, end_date):
     #url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=sujDatePremiereInscription&val4a={}&val4b={}&start={}&format=xml"
     #logger.debug(url.format(start_date_str, end_date_str, start))
     #r = requests.get(url.format(start_date_str, end_date_str, start))
-    url = "http://theses.fr/?q=&start={}&format=xml"
+    url = "https://theses.fr/?q=&start={}&format=xml"
 
     r = requests.get(url.format(start))
 
@@ -49,14 +53,19 @@ def get_num_these_between_dates(start_date, end_date):
 
     nb_pages_remaining = math.ceil(int(nb_res)/1000)
     for p in range(1, nb_pages_remaining):
-        logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
+        #logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
         #r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
-        r = requests.get(url.format(p * 1000))
+        r = get_url(url.format(p * 1000))
         soup = BeautifulSoup(r.text, 'lxml')
         num_theses += get_num_these(soup)
         
     return num_theses
 
+
+@retry(delay=10, tries=10)
+def get_url(url):
+    logger.debug(url)
+    return requests.get(url)
 
 def save_data(data, collection_name, year_start, year_end, chunk_index, referentiel):
     logger.debug(f'save_data theses {collection_name} {chunk_index}')
@@ -83,7 +92,9 @@ def harvest_and_insert(collection_name, harvest_referentiel):
     # 1. save aurehal structures
     if harvest_referentiel:
         harvest_and_save_idref(collection_name)
-    referentiel = get_idref_from_OS(collection_name)
+    #referentiel = get_idref_from_OS(collection_name)
+    #idref api too slow
+    referentiel = get_idref_from_OS('20221201')
 
     # 2. drop mongo 
     #logger.debug(f'dropping {collection_name} collection before insertion')
@@ -103,12 +114,15 @@ def harvest_and_insert(collection_name, harvest_referentiel):
 def download_these_notice(these_id):
 
     res = {'id': these_id}
-    r_tefudoc = requests.get("http://www.theses.fr/{}.tefudoc".format(these_id))
-    r_xml = requests.get("http://www.theses.fr/{}.xml".format(these_id))
+    url_tefudoc = "https://www.theses.fr/{}.tefudoc".format(these_id)
+    url_xml = "https://www.theses.fr/{}.xml".format(these_id)
 
-    if r_tefudoc.text[0:5] == "<?xml":
-        res['tefudoc'] = r_tefudoc.text
-
+    if these_id[0:1] != 's':
+        r_tefudoc = get_url(url_tefudoc)
+        if r_tefudoc.text[0:5] == "<?xml":
+            res['tefudoc'] = r_tefudoc.text
+    
+    r_xml = get_url(url_xml)
     if r_xml.text[0:5] == "<?xml":
         res['xml'] = r_xml.text
 
@@ -123,7 +137,12 @@ def harvest_and_insert_one_year(collection_name, year_start, year_end, referenti
     start_date = datetime.datetime(year_start,1,1)
     end_date = datetime.datetime(year_end + 1,1,1) + datetime.timedelta(days = -1)
 
-    all_num_theses = get_num_these_between_dates(start_date, end_date)
+    try:
+        json.load(open("all_nnts.json", 'r'))
+    except:
+        all_num_theses = get_num_these_between_dates(start_date, end_date)
+    json.dump(all_num_theses, open('all_nnts.json', 'w'))
+
 
     # todo save by chunk
     chunk_index = 0
@@ -131,6 +150,7 @@ def harvest_and_insert_one_year(collection_name, year_start, year_end, referenti
     MAX_DATA_SIZE = 25000
     nb_theses = len(all_num_theses)
     logger.debug(f'{nb_theses} theses to download and parse')
+    logger.debug(f'current IP = {get_ip()}')
     for ix, nnt in enumerate(all_num_theses):
         if ix % 100 == 0:
             logger.debug(f'theses {year_start_end} {ix}')
