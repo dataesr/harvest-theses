@@ -41,30 +41,31 @@ def get_num_these_between_dates(start_date, end_date):
     #url = "http://theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=sujDatePremiereInscription&val4a={}&val4b={}&start={}&format=xml"
     #logger.debug(url.format(start_date_str, end_date_str, start))
     #r = requests.get(url.format(start_date_str, end_date_str, start))
-    url = "https://theses.fr/?q=&start={}&format=xml"
+    #url = "https://theses.fr/?q=&start={}&format=xml"
+    url = 'https://theses.fr/api/v1/theses/recherche/?q=*&debut=0&nombre=500&tri=dateAsc'
+    r = requests.get(url).json()
 
-    r = requests.get(url.format(start))
-
-    soup = BeautifulSoup(r.text, 'lxml')
-
-    nb_res = soup.find('result', {'name': 'response'}).attrs['numfound']
+    nb_res = r['totalHits']#soup.find('result', {'name': 'response'}).attrs['numfound']
     logger.debug("{} resultats entre {} et {}".format(nb_res, start_date_str_iso, end_date_str_iso ))
-    num_theses = get_num_these(soup)
+    #num_theses = get_num_these(soup)
+    num_theses = [k['id'] for k in r['theses']]
 
-    nb_pages_remaining = math.ceil(int(nb_res)/1000)
+    nb_pages_remaining = math.ceil(int(nb_res)/500)
     for p in range(1, nb_pages_remaining):
-        #logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
+        logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
         #r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
-        r = get_url(url.format(p * 1000))
-        soup = BeautifulSoup(r.text, 'lxml')
-        num_theses += get_num_these(soup)
+        debut = p * 500
+        r = get_url(f'https://theses.fr/api/v1/theses/recherche/?q=*&debut={debut}&nombre=500&tri=dateAsc').json()
+        #soup = BeautifulSoup(r.text, 'lxml')
+        #num_theses += get_num_these(soup)
+        num_theses += [k['id'] for k in r['theses']]
         
     return num_theses
 
 
 @retry(delay=10, tries=10)
 def get_url(url):
-    logger.debug(url)
+    #logger.debug(url)
     return requests.get(url)
 
 def save_data(data, collection_name, year_start, year_end, chunk_index, referentiel):
@@ -92,9 +93,11 @@ def harvest_and_insert(collection_name, harvest_referentiel):
     # 1. save aurehal structures
     if harvest_referentiel:
         harvest_and_save_idref(collection_name)
-    #referentiel = get_idref_from_OS(collection_name)
-    #idref api too slow
-    referentiel = get_idref_from_OS('20221201')
+    try:
+        referentiel = get_idref_from_OS(collection_name)
+        #idref api too slow
+    except:
+        referentiel = get_idref_from_OS('20221201')
 
     # 2. drop mongo 
     #logger.debug(f'dropping {collection_name} collection before insertion')
