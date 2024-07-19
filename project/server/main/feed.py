@@ -117,8 +117,10 @@ def harvest_and_insert(collection_name, harvest_referentiel):
 def download_these_notice(these_id):
 
     res = {'id': these_id}
-    url_tefudoc = "https://www.theses.fr/{}.tefudoc".format(these_id)
-    url_xml = "https://www.theses.fr/{}.xml".format(these_id)
+    #url_tefudoc = "https://www.theses.fr/{}.tefudoc".format(these_id)
+    #url_xml = "https://www.theses.fr/{}.xml".format(these_id)
+    url_tefudoc = f"https://theses.fr/api/v1/export/tefudoc/{these_id}"
+    url_xml= f"https://theses.fr/api/v1/export/xml/{these_id}"
 
     if these_id[0:1] != 's':
         r_tefudoc = get_url(url_tefudoc)
