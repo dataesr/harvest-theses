@@ -26,6 +26,12 @@ init_cmd = f"swift --os-auth-url https://auth.cloud.ovh.net/v3 --auth-version 3 
       --os-region-name GRA"
 conn = None
 
+def get_last_ref_date():
+    cmd = init_cmd+ ' list theses | grep idref_struct_dict.json.gz > /src/list_struct_files'
+    os.system(cmd)
+    dates = pd.read_csv('/src/list_struct_files', header=None)[0].apply(lambda x:x.split('/')[0]).to_list()
+    dates.sort()
+    return dates[-1]
 
 def get_connection() -> swiftclient.Connection:
     global conn

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 import math
 
 from project.server.main.logger import get_logger
-from project.server.main.utils_swift import upload_object
+from project.server.main.utils_swift import upload_object, get_last_ref_date
 from project.server.main.parse import parse_theses, get_idref_from_OS
 from project.server.main.referentiel import harvest_and_save_idref
 
@@ -97,7 +97,9 @@ def harvest_and_insert(collection_name, harvest_referentiel):
         referentiel = get_idref_from_OS(collection_name)
         #idref api too slow
     except:
-        referentiel = get_idref_from_OS('20221201')
+        last_ref_date = get_last_ref_date()
+        logger.debug(f'using last referentiel date : {last_ref_date}')
+        referentiel = get_idref_from_OS(last_ref_date)
 
     # 2. drop mongo 
     #logger.debug(f'dropping {collection_name} collection before insertion')
