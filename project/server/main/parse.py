@@ -253,11 +253,21 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     if sorties and sorties.find('diffusion'):
         diffusion_attrs = sorties.find('diffusion').attrs
         res.update(diffusion_attrs)
-        
+    diffusion_types = []
+    if is_oa is True:
+        diffusion_types.append('open')
+    if is_oa is False:
+        if res.get('embargofin'):
+            diffusion_types.append('embargo')
+        if res.get('confidentialitefin'):
+            diffusion_types.append('confidential')
+        if len(diffusion_types) == 0:
+            diffusion_types.append('restricted')
+    diffusion_types.sort()
 
     res['oa_details'] = {}
     observation_date = get_millesime(snapshot_date)
-    res['oa_details'][observation_date] = {'is_oa': is_oa, 'observation_date': observation_date, 'snapshot_date': snapshot_date}
+    res['oa_details'][observation_date] = {'is_oa': is_oa, 'observation_date': observation_date, 'snapshot_date': snapshot_date, 'diffusion_type': ';'.join(diffusion_types)}
     if is_oa:
         res['oa_details'][observation_date]['oa_host_type'] = 'repository'
         res['oa_details'][observation_date]['oa_colors'] = ['green']

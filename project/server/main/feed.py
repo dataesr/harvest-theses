@@ -6,6 +6,7 @@ from urllib import parse
 from urllib.parse import quote_plus
 import json
 from retry import retry
+import random
 
 from bs4 import BeautifulSoup
 import math
@@ -13,7 +14,6 @@ import math
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, get_last_ref_date
 from project.server.main.parse import parse_theses, get_idref_from_OS
-from project.server.main.referentiel import harvest_and_save_idref
 
 logger = get_logger(__name__)
 
@@ -35,6 +35,9 @@ def get_num_these_between_dates(start_date, end_date):
     start_date_str_iso = start_date.strftime("%Y%m%d")
     end_date_str_iso = end_date.strftime("%Y%m%d")
 
+    year_start = start_date_str_iso[0:4]
+    year_end = end_date_str_iso[0:4]
+
     start = 0
 
 
@@ -42,8 +45,9 @@ def get_num_these_between_dates(start_date, end_date):
     #logger.debug(url.format(start_date_str, end_date_str, start))
     #r = requests.get(url.format(start_date_str, end_date_str, start))
     #url = "https://theses.fr/?q=&start={}&format=xml"
-    url = 'https://theses.fr/api/v1/theses/recherche/?q=*&debut=0&nombre=500&tri=dateAsc'
-    r = requests.get(url).json()
+    url = f'https://theses.fr/api/v1/theses/recherche/?q=*&debut=0&nombre=500&tri=dateAsc&filtres=%5Bdatefin%3D%22{year_end}%22~datedebut%3D%22{year_start}%22%5D'
+    logger.debug(url)
+    r = get_url(url).json()
 
     nb_res = r['totalHits']#soup.find('result', {'name': 'response'}).attrs['numfound']
     logger.debug("{} resultats entre {} et {}".format(nb_res, start_date_str_iso, end_date_str_iso ))
@@ -55,7 +59,7 @@ def get_num_these_between_dates(start_date, end_date):
         logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
         #r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
         debut = p * 500
-        r = get_url(f'https://theses.fr/api/v1/theses/recherche/?q=*&debut={debut}&nombre=500&tri=dateAsc').json()
+        r = get_url(f'https://theses.fr/api/v1/theses/recherche/?q=*&debut={debut}&nombre=500&tri=dateAsc&filtres=%5Bdatefin%3D%22{year_end}%22~datedebut%3D%22{year_start}%22%5D').json()
         #soup = BeautifulSoup(r.text, 'lxml')
         #num_theses += get_num_these(soup)
         num_theses += [k['id'] for k in r['theses']]
@@ -67,6 +71,27 @@ def get_num_these_between_dates(start_date, end_date):
 def get_url(url):
     #logger.debug(url)
     return requests.get(url)
+
+crawler_url = "http://crawler:5001"
+@retry(delay=10, tries=10)
+def get_url_from_ip(url):
+    #return get_url_bright(url)
+    res = requests.post(f'{crawler_url}/simple_crawl', json={'url': url}).json()
+    if res.get('status'):
+        return res['text']
+
+
+@retry(delay=10, tries=10)
+def get_url_bright(url):
+    PASSWORD = os.getenv('BRIGHT_PASSWORD')
+    USER = os.getenv('BRIGHT_USERNAME')
+    PORT = os.getenv('BRIGHT_PORT')
+    rdm = str(int(100000*random.random()))
+    os.system(f'rm -rf current_{rdm}.html')
+    cmd = f'curl --proxy brd.superproxy.io:{PORT} --proxy-user {USER}:{PASSWORD} -k {url} -o current_{rdm}.html'
+    os.system(cmd)
+    source = open(f'current_{rdm}.html', 'r').read()
+    return source
 
 def save_data(data, collection_name, year_start, year_end, chunk_index, referentiel):
     logger.debug(f'save_data theses {collection_name} {chunk_index}')
@@ -89,53 +114,25 @@ def save_data(data, collection_name, year_start, year_end, chunk_index, referent
     upload_object('theses', f'{current_file_parsed}.gz', f'{collection_name}/parsed/{current_file_parsed}.gz')
     os.system(f'rm -rf {current_file_parsed}.gz')
 
-def harvest_and_insert(collection_name, harvest_referentiel):
-    # 1. save aurehal structures
-    if harvest_referentiel:
-        harvest_and_save_idref(collection_name)
-    try:
-        referentiel = get_idref_from_OS(collection_name)
-        #idref api too slow
-    except:
-        last_ref_date = get_last_ref_date()
-        logger.debug(f'using last referentiel date : {last_ref_date}')
-        referentiel = get_idref_from_OS(last_ref_date)
-
-    # 2. drop mongo 
-    #logger.debug(f'dropping {collection_name} collection before insertion')
-    #myclient = pymongo.MongoClient('mongodb://mongo:27017/')
-    #myclient['theses'][collection_name].drop()
-
-    # 3. save publications
-    year_start = None
-    year_end = None
-    if year_start is None:
-        year_start = 1990
-    if year_end is None:
-        year_end = datetime.date.today().year
-    harvest_and_insert_one_year(collection_name, year_start, year_end, referentiel)
-
 @retry(delay=60, tries=5)
 def download_these_notice(these_id):
-
     res = {'id': these_id}
     #url_tefudoc = "https://www.theses.fr/{}.tefudoc".format(these_id)
     #url_xml = "https://www.theses.fr/{}.xml".format(these_id)
     url_tefudoc = f"https://theses.fr/api/v1/export/tefudoc/{these_id}"
     url_xml= f"https://theses.fr/api/v1/export/xml/{these_id}"
-
     if these_id[0:1] != 's':
-        r_tefudoc = get_url(url_tefudoc)
-        if r_tefudoc.text[0:5] == "<?xml":
-            res['tefudoc'] = r_tefudoc.text
-    
-    r_xml = get_url(url_xml)
-    if r_xml.text[0:5] == "<?xml":
-        res['xml'] = r_xml.text
-
+        #r_tefudoc = get_url(url_tefudoc).text
+        r_tefudoc = get_url_from_ip(url_tefudoc)
+        if r_tefudoc[0:5] == "<?xml":
+            res['tefudoc'] = r_tefudoc
+    #r_xml = get_url(url_xml).text
+    r_xml = get_url_from_ip(url_xml)
+    if r_xml[0:5] == "<?xml":
+        res['xml'] = r_xml
     return res
 
-def harvest_and_insert_one_year(collection_name, year_start, year_end, referentiel):
+def harvest_and_insert_year(collection_name, year_start, year_end, referentiel):
     
     year_start_end = 'all_years'
     if year_start and year_end:
@@ -143,12 +140,13 @@ def harvest_and_insert_one_year(collection_name, year_start, year_end, referenti
 
     start_date = datetime.datetime(year_start,1,1)
     end_date = datetime.datetime(year_end + 1,1,1) + datetime.timedelta(days = -1)
+    nnt_filename = f'all_nnts_{year_start_end}.json'
 
     try:
-        json.load(open("all_nnts.json", 'r'))
+        json.load(open(nnt_filename, 'r'))
     except:
         all_num_theses = get_num_these_between_dates(start_date, end_date)
-    json.dump(all_num_theses, open('all_nnts.json', 'w'))
+    json.dump(all_num_theses, open(nnt_filename, 'w'))
 
 
     # todo save by chunk
