@@ -61,21 +61,20 @@ def get_dewey(dewey_code):
         thematics += dewey_parent
     return thematics
 
-#def get_person(xml_object):
-#    try:
-#        author_object = xml_object.find('foaf:person')
-#        [last_name, first_name] = author_object.find('foaf:name').text.split(',')
-#        full_name = first_name + ' ' + last_name
-#        person = {'last_name': last_name.strip(), 'first_name': first_name.strip(), 'full_name': full_name.strip()}
-#    except:
-#        person = {}
-#    try:
-#        person_id = author_object.attrs['rdf:about'].replace('http://www.idref.fr/','').replace('/id', '')
-#        person["idref"] = person_id
-#    except:
-#        pass
-#
-#    return person
+def get_person(xml_object):
+    try:
+        author_object = xml_object.find('foaf:person')
+        [last_name, first_name] = author_object.find('foaf:name').text.split(',')
+        full_name = first_name + ' ' + last_name
+        person = {'last_name': last_name.strip(), 'first_name': first_name.strip(), 'full_name': full_name.strip()}
+    except:
+        person = {}
+    try:
+        person_id = author_object.attrs['rdf:about'].replace('http://www.idref.fr/','').replace('/id', '')
+        person["idref"] = person_id
+    except:
+        pass
+    return person
 
 def get_person2(author_object):
     person = {}
@@ -144,17 +143,19 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     res['genre'] = 'thesis'
 
     soup = None
+    soup_tefudoc = None
     soup_xml = None
 
     if 'tefudoc' in notice:
-        soup = BeautifulSoup(notice['tefudoc'], 'lxml')
+        soup_tefudoc = BeautifulSoup(notice['tefudoc'], 'lxml')
     if 'xml' in notice:
         soup_xml = BeautifulSoup(notice['xml'], 'lxml')
-    
-    if soup_xml and (soup is None):
+   
+    if soup_tefudoc:
+        soup = soup_tefudoc
+    elif soup_xml:
         soup = soup_xml
-    
-    if (soup_xml is None) or (soup is None):
+    else:
         return res
 
     title_elt = soup.find('dc:title')
@@ -310,7 +311,11 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
             
         affiliations.append(current_affiliation)
 
-    author = get_person2(soup.find('tef:auteur'))
+    author = {}
+    if soup_tefudoc:
+        author = get_person2(soup.find('tef:auteur'))
+    elif soup_xml:
+        author = get_person(soup.find('marcrel:dis'))
 
     if affiliations:
         res['affiliations'] = affiliations
@@ -328,6 +333,11 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
             if contributor:
                 contributor['role'] = role
                 authors.append(contributor)
+    if soup_tefudoc is None and soup_xml:
+        for p in soup.find_all('marcrel:ths'):
+            contributor = get_person(p)
+            contributor['role'] = 'directeurthese'
+            authors.append(contributor)
 
     if authors:
         res['authors'] = authors
