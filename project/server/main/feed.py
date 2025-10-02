@@ -74,12 +74,20 @@ def get_url(url):
 
 crawler_url = "http://crawler:5001"
 @retry(delay=10, tries=10)
-def get_url_from_ip(url):
+def get_url_from_ip_crawler(url):
     #return get_url_bright(url)
     res = requests.post(f'{crawler_url}/simple_crawl', json={'url': url}).json()
     if res.get('status'):
         return res['text']
 
+@retry(delay=10, tries=10)
+def get_url_from_ip(url):
+    proxies = {
+        'http': 'http://dataesr:proxyovh@51.210.36.87:3128',
+        'https': 'http://dataesr:proxyovh@51.210.36.87:3128'
+    }
+    res = requests.get(url, proxies=proxies)
+    return res.text
 
 @retry(delay=10, tries=10)
 def get_url_bright(url):
