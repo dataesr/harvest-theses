@@ -14,6 +14,7 @@ import math
 from project.server.main.logger import get_logger
 from project.server.main.utils_swift import upload_object, get_last_ref_date
 from project.server.main.parse import parse_theses, get_idref_from_OS
+from project.server.main.utils import get_url_from_ip
 
 logger = get_logger(__name__)
 
@@ -47,7 +48,7 @@ def get_num_these_between_dates(start_date, end_date):
     #url = "https://theses.fr/?q=&start={}&format=xml"
     url = f'https://theses.fr/api/v1/theses/recherche/?q=*&debut=0&nombre=500&tri=dateAsc&filtres=%5Bdatefin%3D%22{year_end}%22~datedebut%3D%22{year_start}%22%5D'
     logger.debug(url)
-    r = get_url(url).json()
+    r = get_url_from_ip(url).json()
 
     nb_res = r['totalHits']#soup.find('result', {'name': 'response'}).attrs['numfound']
     logger.debug("{} resultats entre {} et {}".format(nb_res, start_date_str_iso, end_date_str_iso ))
@@ -59,47 +60,13 @@ def get_num_these_between_dates(start_date, end_date):
         logger.debug("page {} for entre {} et {}".format(p, start_date_str_iso, end_date_str_iso))
         #r = requests.get(url.format(start_date_str, end_date_str, p * 1000))
         debut = p * 500
-        r = get_url(f'https://theses.fr/api/v1/theses/recherche/?q=*&debut={debut}&nombre=500&tri=dateAsc&filtres=%5Bdatefin%3D%22{year_end}%22~datedebut%3D%22{year_start}%22%5D').json()
+        r = get_url_from_ip(f'https://theses.fr/api/v1/theses/recherche/?q=*&debut={debut}&nombre=500&tri=dateAsc&filtres=%5Bdatefin%3D%22{year_end}%22~datedebut%3D%22{year_start}%22%5D').json()
         #soup = BeautifulSoup(r.text, 'lxml')
         #num_theses += get_num_these(soup)
         num_theses += [k['id'] for k in r['theses']]
         
     return num_theses
 
-
-@retry(delay=10, tries=10)
-def get_url(url):
-    #logger.debug(url)
-    return requests.get(url)
-
-crawler_url = "http://crawler:5001"
-@retry(delay=10, tries=10)
-def get_url_from_ip_crawler(url):
-    #return get_url_bright(url)
-    res = requests.post(f'{crawler_url}/simple_crawl', json={'url': url}).json()
-    if res.get('status'):
-        return res['text']
-
-@retry(delay=10, tries=10)
-def get_url_from_ip(url):
-    proxies = {
-        'http': 'http://dataesr:proxyovh@51.210.36.87:3128',
-        'https': 'http://dataesr:proxyovh@51.210.36.87:3128'
-    }
-    res = requests.get(url, proxies=proxies)
-    return res.text
-
-@retry(delay=10, tries=10)
-def get_url_bright(url):
-    PASSWORD = os.getenv('BRIGHT_PASSWORD')
-    USER = os.getenv('BRIGHT_USERNAME')
-    PORT = os.getenv('BRIGHT_PORT')
-    rdm = str(int(100000*random.random()))
-    os.system(f'rm -rf current_{rdm}.html')
-    cmd = f'curl --proxy brd.superproxy.io:{PORT} --proxy-user {USER}:{PASSWORD} -k {url} -o current_{rdm}.html'
-    os.system(cmd)
-    source = open(f'current_{rdm}.html', 'r').read()
-    return source
 
 def save_data(data, collection_name, year_start, year_end, chunk_index, referentiel):
     logger.debug(f'save_data theses {collection_name} {chunk_index}')
@@ -129,13 +96,10 @@ def download_these_notice(these_id):
     #url_xml = "https://www.theses.fr/{}.xml".format(these_id)
     url_tefudoc = f"https://theses.fr/api/v1/export/tefudoc/{these_id}"
     url_xml= f"https://theses.fr/api/v1/export/xml/{these_id}"
-    if these_id[0:1] != 's':
-        #r_tefudoc = get_url(url_tefudoc).text
-        r_tefudoc = get_url_from_ip(url_tefudoc)
-        if r_tefudoc[0:5] == "<?xml":
-            res['tefudoc'] = r_tefudoc
-    #r_xml = get_url(url_xml).text
-    r_xml = get_url_from_ip(url_xml)
+    r_tefudoc = get_url_from_ip(url_tefudoc).text
+    if r_tefudoc[0:5] == "<?xml":
+        res['tefudoc'] = r_tefudoc
+    r_xml = get_url_from_ip(url_xml).text
     if r_xml[0:5] == "<?xml":
         res['xml'] = r_xml
     return res

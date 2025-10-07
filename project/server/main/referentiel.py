@@ -5,11 +5,13 @@ import json
 import re
 import pickle
 import requests
+import pandas as pd
 from bs4 import BeautifulSoup
 from dateutil import parser
 from traceback import format_exc
 from retry import retry
 from project.server.main.utils_swift import upload_object, download_object
+from project.server.main.utils import get_url_from_ip
 from project.server.main.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,7 +30,7 @@ def get_idref_list_in_referentiel():
 
     while keep_going:
         url = f'https://www.idref.fr/Sru/Solr?q=recordtype_z:b&version=2.2&start={start}&rows={NB_ROWS}&wt=json&fl=ppn_z'
-        res = requests.get(url).json()['response']
+        res = get_url_from_ip(url).json()['response']
         idref_to_download += [p['ppn_z'] for p in res['docs']]
         keep_going = len(res['docs']) > 0
         start += NB_ROWS
@@ -58,10 +60,18 @@ def download_referentiel_notice2(idref):
         return source
     return None
 
+def get_correspondance_idref_ed():
+    idref_ed_map = {}
+    df_ed = pd.read_csv('https://raw.githubusercontent.com/dataesr/person-matcher/refs/heads/main/ed_idref.tsv', sep='\t')
+    for e in df_ed.to_dict(orient='records'):
+        new_elt = {}
+        idref = e['Idref'].strip()
+        idref_ed_map[idref] = 'ED' + str(e['Numéro ED']).strip()
+    return idref_ed_map
 
 def get_referentiel(collection_name):
     idref_to_download = get_idref_list_in_referentiel()
-    
+    idref_ed_map = get_correspondance_idref_ed()
     chunk_index = 0
     data_notice, data_parsed = [], []
     MAX_DATA_SIZE = 5000
@@ -75,7 +85,7 @@ def get_referentiel(collection_name):
             notice = download_referentiel_notice(idref)
             elt_notice = {'idref': idref, 'notice': notice}
             data_notice.append(elt_notice)
-            elt_parsed = parse_idref(idref, notice)
+            elt_parsed = parse_idref(idref, notice, idref_ed_map)
             data_parsed.append(elt_parsed)
         except:
             logger.debug(f'error in downloading notice for idref {idref}')
@@ -96,7 +106,7 @@ def save_data_referentiel(data, source, target):
     upload_object('theses', f'{source}.gz', f'{target}.gz')
     os.system(f'rm -rf {source}.gz')
 
-def parse_idref(idref, notice):
+def parse_idref(idref, notice, idref_ed_map):
     soup = BeautifulSoup(notice, 'lxml')
     elt = {}
     idref_elt = soup.find('controlfield', {"tag": "001"})
@@ -106,6 +116,8 @@ def parse_idref(idref, notice):
         print("idref not matching in notice")
 
     elt['idref'] = idref
+    if idref in idref_ed_map:
+        elt['ed'] = idref_ed_map[idref]
     alias_idref = []
     aliases = []
 
@@ -171,7 +183,7 @@ def parse_idref(idref, notice):
 
 @retry(delay=60, tries=5)
 def download_referentiel_notice(idref):
-    r = requests.get(f'https://www.idref.fr/{idref}.xml')
+    r = get_url_from_ip(f'https://www.idref.fr/{idref}.xml')
     if r.text[0:5] == '<?xml':
         return r.text
     return None
