@@ -124,9 +124,11 @@ def get_parsed_date(soup, date_balise):
             datestr = datestr + "-01-01"
         if len(datestr) > 10:
             datestr = datestr[0:10]
-        parsed_date = datetime.datetime.strptime(
-                    datestr, "%Y-%m-%d"
-                )
+        try:
+            parsed_date = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+        except:
+            logger.debug(f'impossible to parse date {datestr}')
+            return None
         return parsed_date.isoformat()
     return None
 
