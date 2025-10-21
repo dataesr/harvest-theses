@@ -160,11 +160,38 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     else:
         return res
 
+    title, title_fr, title_en, title_other = None, None, None, None
     title_elt = soup.find('dc:title')
-    if title_elt is None:
+    if title_elt:
+        lang = title_elt.attrs.get('xml:lang')
+        if lang == 'fr':
+            title_fr = title_elt.text
+        elif lang == 'en':
+            title_en = title_elt.text
+        else:
+            title_other = title_elt.text
+    alt_title_elt = soup.find('dcterms:alternative')
+    if alt_title_elt:
+        lang = lang = alt_title_elt.attrs.get('xml:lang')
+        if lang == 'fr':
+            title_fr = alt_title_elt.text
+        elif lang == 'en':
+            title_en = alt_title_elt.text
+        else:
+            title_other = alt_title_elt.text
+    if title_fr:
+        title=title_fr
+    elif title_en:
+        title=title_en
+    elif title_other:
+        title=title_other
+
+    if title is None:
         return res
 
-    res['title'] = soup.find('dc:title').text
+    res['title'] = title
+    res['title_fr'] = title_fr
+    res['title_en'] = title_en
 
     abstracts = []
     if isinstance(soup.find_all('dcterms:abstract'), list):
