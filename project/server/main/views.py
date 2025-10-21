@@ -38,7 +38,7 @@ def run_task_download():
     year_start = args.get('year_start')
     year_end = args.get('year_end')
     if year_start is None:
-        year_start = 1990
+        year_start = 1980
     if year_end is None:
         year_end = datetime.date.today().year
     for year in range(year_start, year_end + 1):
