@@ -112,13 +112,13 @@ def harvest_and_insert_year(collection_name, year_start, year_end, referentiel):
 
     start_date = datetime.datetime(year_start,1,1)
     end_date = datetime.datetime(year_end + 1,1,1) + datetime.timedelta(days = -1)
-    nnt_filename = f'all_nnts_{year_start_end}.json'
+    nnt_filename = f'all_nnts_{collection_name}_{year_start_end}.json'
 
     try:
-        json.load(open(nnt_filename, 'r'))
+        all_num_theses = json.load(open(nnt_filename, 'r'))
     except:
         all_num_theses = get_num_these_between_dates(start_date, end_date)
-    json.dump(all_num_theses, open(nnt_filename, 'w'))
+        json.dump(all_num_theses, open(nnt_filename, 'w'))
 
 
     # todo save by chunk
