@@ -1,7 +1,10 @@
 import requests
+from project.server.main.logger import get_logger
 from retry import retry
 
-@retry(delay=10, tries=10)
+logger = get_logger(__name__)
+
+@retry(delay=60, tries=5, logger=logger)
 def get_url_from_ip(url):
     proxies = {
         'http': 'http://dataesr:proxyovh@51.210.36.87:3128',

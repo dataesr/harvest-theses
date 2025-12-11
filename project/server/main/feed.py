@@ -28,7 +28,7 @@ def get_num_these(soup):
         num_theses.append(d.find('str', {'name': 'num'}).text)
     return num_theses
 
-@retry(delay=60, tries=5)
+@retry(delay=60, tries=5, logger=logger)
 def get_num_these_between_dates(start_date, end_date):
     start_date_str = start_date.strftime("%d/%m/%Y")
     end_date_str = end_date.strftime("%d/%m/%Y")
@@ -89,7 +89,7 @@ def save_data(data, collection_name, year_start, year_end, chunk_index, referent
     upload_object('theses', f'{current_file_parsed}.gz', f'{collection_name}/parsed/{current_file_parsed}.gz')
     os.system(f'rm -rf {current_file_parsed}.gz')
 
-@retry(delay=60, tries=5)
+@retry(delay=60, tries=5, logger=logger)
 def download_these_notice(these_id):
     res = {'id': these_id}
     #url_tefudoc = "https://www.theses.fr/{}.tefudoc".format(these_id)
@@ -97,12 +97,22 @@ def download_these_notice(these_id):
     url_tefudoc = f"https://theses.fr/api/v1/export/tefudoc/{these_id}"
     url_xml= f"https://theses.fr/api/v1/export/xml/{these_id}"
     r_tefudoc = get_url_from_ip(url_tefudoc)
-    assert(r_tefudoc.status_code==200)
     r_tefudoc_txt = r_tefudoc.text
     if r_tefudoc_txt[0:5] == "<?xml":
         res['tefudoc'] = r_tefudoc_txt
+        assert(r_tefudoc.status_code==200)
         assert(len(r_tefudoc_txt)>1000)
     r_xml = get_url_from_ip(url_xml)
+    if r_xml.status_code != 200:
+        logger.debug(these_id, url_xml)
+        logger.debug(r_xml.status_code)
+        logger.debug(r_xml.text)
+        try:
+            if r_xml.json()['error'] == 'Internal Server Error':
+                logger.debug(f'these_id {these_id} has error')
+                return res
+        except:
+            pass
     assert(r_xml.status_code==200)
     r_xml_txt = r_xml.text
     assert(r_xml_txt[0:5] == "<?xml")
