@@ -96,12 +96,18 @@ def download_these_notice(these_id):
     #url_xml = "https://www.theses.fr/{}.xml".format(these_id)
     url_tefudoc = f"https://theses.fr/api/v1/export/tefudoc/{these_id}"
     url_xml= f"https://theses.fr/api/v1/export/xml/{these_id}"
-    r_tefudoc = get_url_from_ip(url_tefudoc).text
-    if r_tefudoc[0:5] == "<?xml":
-        res['tefudoc'] = r_tefudoc
-    r_xml = get_url_from_ip(url_xml).text
-    if r_xml[0:5] == "<?xml":
-        res['xml'] = r_xml
+    r_tefudoc = get_url_from_ip(url_tefudoc)
+    assert(r_tefudoc.status_code==200)
+    r_tefudoc_txt = r_tefudoc.text
+    if r_tefudoc_txt[0:5] == "<?xml":
+        res['tefudoc'] = r_tefudoc_txt
+        assert(len(r_tefudoc_txt)>1000)
+    r_xml = get_url_from_ip(url_xml)
+    assert(r_xml.status_code==200)
+    r_xml_txt = r_xml.text
+    assert(r_xml_txt[0:5] == "<?xml")
+    res['xml'] = r_xml_txt
+    assert(len(r_xml_txt)>1000)
     return res
 
 def harvest_and_insert_year(collection_name, year_start, year_end, referentiel):
