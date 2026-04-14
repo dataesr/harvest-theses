@@ -139,8 +139,6 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     if isinstance(notice['id'], str):
         external_ids.append({'id_type': 'nnt_id', 'id_value': notice.get('id')})
         res['nnt_id'] = notice.get('id')
-    if external_ids:
-        res['external_ids'] = external_ids
     
     res['genre'] = 'thesis'
 
@@ -159,6 +157,15 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         soup = soup_xml
     else:
         return res
+    
+    doi_elt = soup.find('bibo:doi')
+    if doi_elt:
+        doi = doi_elt.get_text().lower().strip()
+        external_ids.append({'id_type': 'doi', 'id_value': doi})
+    res['doi'] = doi
+
+    if external_ids:
+        res['external_ids'] = external_ids
 
     title, title_fr, title_en, title_other = None, None, None, None
     title_elt = soup.find('dc:title')
