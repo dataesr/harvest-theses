@@ -22,6 +22,10 @@ def get_ip():
     ip = requests.get('https://api.ipify.org').text
     return ip
 
+def test_fixed_ip():
+    r = get_url_from_ip('https://api.ipify.org')
+    return r.text
+
 def get_num_these(soup):
     num_theses = []
     for d in soup.find_all('doc'):

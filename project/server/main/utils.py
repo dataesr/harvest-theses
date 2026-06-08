@@ -6,6 +6,7 @@ logger = get_logger(__name__)
 
 @retry(delay=60, tries=5, logger=logger)
 def get_url_from_ip(url):
+    #logger.debug(url)
     proxies = {
         'http': 'http://dataesr:proxyovh@51.210.36.87:3128',
         'https': 'http://dataesr:proxyovh@51.210.36.87:3128'

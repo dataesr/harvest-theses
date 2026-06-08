@@ -158,7 +158,7 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     else:
         return res
     
-    doi_elt = soup.find('bibo:doi')
+    doi_elt = soup_xml.find('bibo:doi')
     if doi_elt:
         doi = doi_elt.get_text().lower().strip()
         external_ids.append({'id_type': 'doi', 'id_value': doi})
