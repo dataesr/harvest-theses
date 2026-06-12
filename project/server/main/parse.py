@@ -162,7 +162,10 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
     if doi_elt:
         doi = doi_elt.get_text().lower().strip()
         external_ids.append({'id_type': 'doi', 'id_value': doi})
-    res['doi'] = doi
+        res['doi'] = doi
+    else:
+        if not notice['id'][0:1]=='s':
+            logger.debug("NO DOI in {notice['id']} ????")
 
     if external_ids:
         res['external_ids'] = external_ids
