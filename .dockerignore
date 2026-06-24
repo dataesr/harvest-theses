@@ -1,1 +1,38 @@
+# Python
+__pycache__
+*.pyc
+*.mypy_cache*
+*.pyi
+.cache
+.mypy*
+venv
+tests/*
+
+# Unit tests
+.pytest_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
 notebooks/*
+
+# IDE
+.idea
+.vscode
+.zed
+
+# Logs
+*.log
+
+# Build
+dist
+*.egg-info
+
+# Git
+.git
+.github
+.gitignore
+
+# Documentation
+doc
+doc/out.*
+doc/bso.tex
