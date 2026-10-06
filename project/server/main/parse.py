@@ -274,7 +274,7 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         res['is_defended'] = True
     
     start_date = get_parsed_date(soup_xml, 'dcterms:created')
-    if start_date:
+    if start_date and res['nnt_id'][0:1] == 's':
         res['start_date'] = start_date
 
     is_oa = False
