@@ -1,4 +1,4 @@
-DOCKER_IMAGE_NAME=dataesr/harvest-theses
+DOCKER_IMAGE_NAME=ghcr.io/dataesr/harvest-theses
 CURRENT_VERSION=$(shell cat project/__init__.py | cut -d "'" -f 2)
 
 docker-build:
@@ -8,8 +8,7 @@ docker-build:
 
 docker-push:
 	@echo Pushing a new docker image
-	docker push $(DOCKER_IMAGE_NAME):$(CURRENT_VERSION)
-	docker push $(DOCKER_IMAGE_NAME):latest
+	docker push -a $(DOCKER_IMAGE_NAME)
 	@echo Docker image pushed
 
 install:
