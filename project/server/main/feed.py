@@ -111,12 +111,8 @@ def download_these_notice(these_id):
         logger.debug(these_id, url_xml)
         logger.debug(r_xml.status_code)
         logger.debug(r_xml.text)
-        try:
-            if r_xml.json()['error'] == 'Internal Server Error':
-                logger.debug(f'these_id {these_id} has error')
-                return res
-        except:
-            pass
+        logger.debug(f'these_id {these_id} has error')
+        return res
     assert(r_xml.status_code==200)
     r_xml_txt = r_xml.text
     assert(r_xml_txt[0:5] == "<?xml")

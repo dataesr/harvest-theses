@@ -165,7 +165,7 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         res['doi'] = doi
     else:
         if not notice['id'][0:1]=='s':
-            logger.debug("NO DOI in {notice['id']} ????")
+            logger.debug(f"NO DOI in {notice['id']} ????")
 
     if external_ids:
         res['external_ids'] = external_ids
@@ -273,7 +273,7 @@ def parse_theses_xml(notice, referentiel, snapshot_date):
         res['year'] = defense_date[0:4]
         res['is_defended'] = True
     
-    start_date = get_parsed_date(soup, 'dcterms:created')
+    start_date = get_parsed_date(soup_xml, 'dcterms:created')
     if start_date:
         res['start_date'] = start_date
 
