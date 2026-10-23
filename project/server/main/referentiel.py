@@ -62,7 +62,7 @@ def download_referentiel_notice2(idref):
 
 def get_correspondance_idref_ed():
     idref_ed_map = {}
-    df_ed = pd.read_csv('https://raw.githubusercontent.com/dataesr/person-matcher/refs/heads/main/ed_idref.tsv', sep='\t')
+    df_ed = pd.read_csv('https://raw.githubusercontent.com/dataesr/scanr-backend/refs/heads/main/ed_idref.tsv', sep='\t')
     for e in df_ed.to_dict(orient='records'):
         new_elt = {}
         idref = e['Idref'].strip()
